@@ -9,6 +9,8 @@ pygame.display.set_caption("五子棋")
 font = pygame.font.Font("C:\Windows\Fonts\SimHei.ttf", 40)
 w_success = font.render("白棋赢了！", True, (255, 255, 255))
 b_success = font.render("黑棋赢了！", True, (0, 0, 0))
+restart = font.render("重新开始", True, (255, 0, 0))
+game_over = False
 
 WIN = 1  # 1: 没有获胜方   2：白棋赢   3：黑棋赢
 
@@ -368,7 +370,7 @@ class AI:
 		# 右斜
 		for i in range(0, 15 - self.linkNum):
 			for m in range(self.linkNum, 15):
-				if (row - i) == (col - m) and row in range(i, i + self.linkNum) and range(m - self.linkNum, m):  # 斜率相同，即在同一条线上，且在选的范围内
+				if (row - i) == -(col - m) and row in range(i, i + self.linkNum) and range(m - self.linkNum, m):  # 斜率相同，即在同一条线上，且在选的范围内
 					typeList = []
 					for k in range(self.linkNum):
 						typeList.append(self.array_status[i+k][m-k])
@@ -628,44 +630,55 @@ while True:
 			else:
 				pass
 			mousePos = (mouseX, mouseY)
+			# print(mousePos)
 
-			# 找到点击时所在网格的索引值，用于修改棋盘的状态
-			for i in range(15):
-				try:
-					index = (i, list_board_pos[i].index(mousePos))
-					break
-				except ValueError:
-					pass
-
-			# print(index)
-			# 人机交替下棋，并修改棋盘状态
-			if list_board_status[index[0]][index[1]] == 0:  # 当前位置没有棋子，才能放下棋子
-				if PLAY:
-					list_board_status[index[0]][index[1]] = USER
-					# print(index)
-					judge = Judge(list_board_status, PLAY, (index[0], index[1]))
-					if judge.judge:
-						WIN = 2
-					else:
+			# restart 游戏结束
+			if game_over:
+				if mouseX in range(320, 481) and mouseY in range(380, 421):
+					game_over = False
+					for i in range(0, 15):  # 重置棋盘状态
+						for j in range(0, 15):
+							list_board_status[i][j] = 0
+				else:
+					screen.blit(restart, (300, 380))
+			else:
+				# 找到点击时所在网格的索引值，用于修改棋盘的状态
+				for i in range(15):
+					try:
+						index = (i, list_board_pos[i].index(mousePos))
+						break
+					except ValueError:
 						pass
-					PLAY = False
-				if not PLAY:
-					# 实现AI： 获取合理的 index[0] 和 index[1]
-					list_board_status_array = np.array(list_board_status)
-					ComputeAI = AI(list_board_status_array)
-					AIX, AIY = compare(ComputeAI.sumScore, index)
-					list_board_status[AIX][AIY] = ROBOT
-					judge = Judge(list_board_status, PLAY, (AIX, AIY))
-					if judge.judge:
-						if WIN == 2:
+
+				# print(index)
+				# 人机交替下棋，并修改棋盘状态
+				if list_board_status[index[0]][index[1]] == 0:  # 当前位置没有棋子，才能放下棋子
+					if PLAY:
+						list_board_status[index[0]][index[1]] = USER
+						# print(index)
+						judge = Judge(list_board_status, PLAY, (index[0], index[1]))
+						if judge.judge:
 							WIN = 2
 						else:
-							WIN = 3
-					else:
-						pass
-					PLAY = True
-			else:
-				pass
+							pass
+						PLAY = False
+					if not PLAY:
+						# 实现AI： 获取合理的 index[0] 和 index[1]
+						list_board_status_array = np.array(list_board_status)
+						ComputeAI = AI(list_board_status_array)
+						AIX, AIY = compare(ComputeAI.sumScore, index)  # 优化返回的坐标值，选择相同权值中离上一步白棋坐标最近的那个位置
+						list_board_status[AIX][AIY] = ROBOT
+						judge = Judge(list_board_status, PLAY, (AIX, AIY))
+						if judge.judge:
+							if WIN == 2:
+								WIN = 2
+							else:
+								WIN = 3
+						else:
+							pass
+						PLAY = True
+				else:
+					pass
 
 			# 画棋子
 			for i in range(15):
@@ -680,10 +693,14 @@ while True:
 				# print("白棋赢了！")
 				WIN = 1
 				screen.blit(w_success, (300, 40))
+				screen.blit(restart, (320, 380))
+				game_over = True
 			elif WIN == 3:
 				# print("黑棋赢了！")
+				game_over = True
 				WIN = 1
 				screen.blit(b_success, (300, 40))
+				screen.blit(restart, (320, 380))
 			else:
 				pass
 
